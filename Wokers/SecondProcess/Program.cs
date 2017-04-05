@@ -7,13 +7,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
-using Model;
 
-namespace FemaleWorker
+namespace SecondProcess
 {
     class Program
     {
-        private static readonly string _femalePath = @".\Private$\FemaleQueue";
+        private static readonly string _secondPath = @".\Private$\SecondQueue";
         static void Main(string[] args)
         {
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
@@ -22,22 +21,22 @@ namespace FemaleWorker
             {
                 while (true)
                 {
-                    if (MessageQueue.Exists(_femalePath))
+                    if (MessageQueue.Exists(_secondPath))
                     {
                         Stopwatch timer = new Stopwatch();
 
-                        MessageQueue messageQueue = new MessageQueue(_femalePath);
-                        messageQueue.Formatter = new XmlMessageFormatter(new Type[] { typeof(Account) });
+                        MessageQueue messageQueue = new MessageQueue(_secondPath);
+                        messageQueue.Formatter = new XmlMessageFormatter(new String[] { "System.String,mscorlib" });
 
                         Message receive = messageQueue.Receive();
                         timer.Start();
                         if (receive != null)
                         {
-                            Account account = (Account)receive.Body;
+                            string message = receive.Body.ToString();
                             Console.WriteLine("Processing...");
-                            Thread.Sleep(10000);
+                            Thread.Sleep(5000);
                             timer.Stop();
-                            Console.WriteLine("Message processed: " + account + ", in time: " + timer.Elapsed.TotalSeconds + "s");
+                            Console.WriteLine("Message processed: " + message + ", in time: " + timer.Elapsed.TotalSeconds + "s");
                             timer.Reset();
                         }
 
@@ -49,7 +48,7 @@ namespace FemaleWorker
                             messageQueue.Close();
                             break;
                         }
-                            
+
                     }
                 }
             }, token);

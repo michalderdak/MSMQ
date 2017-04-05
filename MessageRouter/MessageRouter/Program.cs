@@ -11,70 +11,45 @@ namespace MessageRouter
     class Program
     {
         private static readonly string _path = @".\Private$\MyQueue";
-        private static readonly string _malePath = @".\Private$\MaleQueue";
-        private static readonly string _femalePath = @".\Private$\FemaleQueue";
+        private static readonly string _firstPath = @".\Private$\FirstQueue";
+        private static readonly string _secondPath = @".\Private$\SecondQueue";
 
         static void Main(string[] args)
         {
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
             CancellationToken token = cancellationTokenSource.Token;
+
+            if (!MessageQueue.Exists(_path))
+                MessageQueue.Create(_path);
+            if (!MessageQueue.Exists(_firstPath))
+                MessageQueue.Create(_firstPath);
+            if (!MessageQueue.Exists(_secondPath))
+                MessageQueue.Create(_secondPath);
+
+            MessageRouter router = new MessageRouter(new MessageQueue(_path), new MessageQueue(_firstPath), new MessageQueue(_secondPath));
+
             Task.Run(() =>
             {
                 while (true)
                 {
-                    Listen();
-                    if (token.IsCancellationRequested)
+                    router.Listen();
+
+                    if (cancellationTokenSource.IsCancellationRequested)
+                    {
+                        router.Dispose();
                         break;
+                    }
                 }
+               
             }, token);
 
             while (true)
             {
-                string msg = Console.ReadLine();
-                if (msg.Equals("exit"))
+                if (Console.ReadLine().Equals("exit"))
                 {
                     cancellationTokenSource.Cancel();
                     break;
                 }
-                Console.WriteLine("If you wist to exit type: exit");
-            }
-        }
-
-        private static void Listen()
-        {
-            MessageQueue messageQueue = new MessageQueue(_path);
-            messageQueue.Formatter = new XmlMessageFormatter(new Type[] { typeof(Account) });
-
-            Message receive = messageQueue.Receive();
-            if (receive != null)
-            {
-                Account account = (Account) receive.Body;
-
-                if (account.Gender.Equals("Male"))
-                {
-                    SendMessage(_malePath, account);
-                    Console.WriteLine("Message sent: " + account);
-                }
-                else if (account.Gender.Equals("Female"))
-                {
-                    SendMessage(_femalePath, account);
-                    Console.WriteLine("Message sent: " + account);
-                }
-            }
-            messageQueue.Close();
-        }
-
-        private static void SendMessage(string path, Account message)
-        {
-            if (!MessageQueue.Exists(path))
-            {
-                MessageQueue.Create(path);
-                Console.WriteLine("Queue created on path: " + path);
-            }
-            using (MessageQueue messageQueue = new MessageQueue(path))
-            {
-                messageQueue.Formatter = new XmlMessageFormatter(new Type[] { typeof(Account) });
-                messageQueue.Send(message);
             }
         }
     }

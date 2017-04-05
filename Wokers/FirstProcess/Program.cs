@@ -7,13 +7,12 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Timers;
-using Model;
 
-namespace MaleWorker
+namespace FirstProcess
 {
     class Program
     {
-        private static readonly string _malePath = @".\Private$\MaleQueue";
+        private static readonly string _firstPath = @".\Private$\FirstQueue";
         static void Main(string[] args)
         {
             CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
@@ -22,29 +21,34 @@ namespace MaleWorker
             {
                 while (true)
                 {
-                    if (MessageQueue.Exists(_malePath))
+                    if (MessageQueue.Exists(_firstPath))
                     {
                         Stopwatch timer = new Stopwatch();
-                        
-                        MessageQueue messageQueue = new MessageQueue(_malePath);
-                        messageQueue.Formatter = new XmlMessageFormatter(new Type[] { typeof(Account) });
-                        
+
+                        MessageQueue messageQueue = new MessageQueue(_firstPath);
+                        messageQueue.Formatter = new XmlMessageFormatter(new String[] { "System.String,mscorlib" });
+
                         Message receive = messageQueue.Receive();
                         timer.Start();
                         if (receive != null)
                         {
-                            Account account = (Account) receive.Body;
+                            string message = receive.Body.ToString();
                             Console.WriteLine("Processing...");
-                            Thread.Sleep(10000);
+                            Thread.Sleep(5000);
                             timer.Stop();
-                            Console.WriteLine("Message processed: " + account + ", in time: " + timer.Elapsed.TotalSeconds + "s");
+                            Console.WriteLine("Message processed: " + message + ", in time: " + timer.Elapsed.TotalSeconds + "s");
                             timer.Reset();
                         }
 
                         messageQueue.Close();
 
                         if (token.IsCancellationRequested)
+                        {
+                            messageQueue.Dispose();
+                            messageQueue.Close();
                             break;
+                        }
+
                     }
                 }
             }, token);
